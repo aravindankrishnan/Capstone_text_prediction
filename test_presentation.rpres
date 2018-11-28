@@ -1,0 +1,59 @@
+Capstone Project - Coursera Data Science Specialization from John Hopkins University
+========================================================
+author: Aravindan Krishnan
+date: 28 Nov 2018
+width: 1600
+height: 900
+
+Introduction to the Capstone Project - Text Prediction Shiny App
+========================================================
+
+The capstone project as part of the Coursera Data Science Specialization from John Hopkins University is aimed at 
+creating a text prediction app on the lines of swift key. The submission citeria is as below
+
+- Build a backend N-gram language model / algorithm based on a corpus of text provided by coursera
+- Incorporate the algorithm in a shiny app that can be tested by users
+- Build a pitch for this shiny text prediction app (this document you are looking at)
+
+Background and Data
+========================================================
+Coursera provided the base corpus (text) files in order to base the language model. The corpus consisted of three files - blogs(800,000 lines), news(1,000,000 lines) and twitter(2,000,000 lines)
+
+- The training set was creating by reading from the above corpus about 500,000 lines of blogs, 600,000 lines of news and 1,000,000 lines of twitter.
+- The text was preprocessed by removing numbers from the text as they do not contribute to prediction capability
+- Other preprocessing steps like converting to lower cases, removal of punctuation etc was taken care within the tokenization process carried out by the tidy text framework and functions therein.
+- The text also contained a lot of hashtags, hyperlinks such as http://, www. etc. During the initial cleaning process, eliminating this from this big a corpus seemed to take a lot of time (over 2 mins) for such a small portion to be removed. Hence it was decided to keep it as such without really impacting the prediction capability.
+
+Approach to building Text Prediction Algorithm
+========================================================
+
+A 4-gram language model was decided to be used for the text prediction.This means that the next word will be predicted based on last 3 words. The following steps were followed:
+
+- Tokenization into 1,2,3 and 4-grams by using tidytext package to build the n-gram tables as a one time activity.
+- Tokens with less than 3 counts were removed from the n-gram tables to reduce table size and processing time
+- Build the text prediction algorithm based on Katz back off model
+  - Look for observed 4-grams, 3-grams, 2-grams and 1-gram(with most count) as prediction candidates.
+  - At each level, apply a discount to extract probability mass from observed n-grams to accomodate unobserved n-grams
+  - Calculate the probabilities of the observed n-grams
+  -  For each level of unobserved n-grams, apportion the extracted probability mass in the ratio of the probabilities of the observed n-grams. As we go down n-grams, the allocated probability becomes lesser.
+  - Consolidate the final table consisting of observed 4-grams (based on matching 4-gram hits) and unobserved 4-grams (based on matching 3,2 and 1-gram hits)
+  - List the top 3 entries based on probability. Those are the top 3 predictions.
+
+Resources
+========================================================
+
+The text prediction shiny app can be accessed at the link - <insert link>. It has the instructions for getting text prediction.
+
+I have also added the below materials for reference at my github link - 
+
+- Link to Original Corpus files provided by coursera
+- Capstone Milestone Report
+- R code for the prediction algorithm - lists the final 4-gram prediction table
+- Shiny Code for the text prediction app
+- This R studio presentation pitch for my text prediction shiny app
+
+The below resources helped me with this project
+- Stanford NLP course material (available on you tube)
+- Text mining courses on Data Camp
+- Tidytextmining.com - ebook by Julia Silge - free online
+- Shiny App course by RStudio on Data camp

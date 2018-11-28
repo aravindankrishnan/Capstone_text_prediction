@@ -1,0 +1,231 @@
+---
+title: "Capstone_Milestone_report_text_analysis"
+author: "Aravindan Krishnan"
+date: "10/29/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+### Objectives for the Milestone Report on Exploratory Analysis of text from blogs, news and twitter
+
+The capstone project is an assignment requiring participants to create a text prediction algorithm and a web application that can predict the next word given a set of continuous words based on the Corpora of text provided as the base data. Before actually building the prediction algorithm, we need to preview the data in the form of useful summaries as tables or plots to get a sense of the data.Also this will help to understand what are the text nuances or observations that are needed to be mitigated in order to build an effective prediction algorithm.
+
+This milestone report is the first step to building the text prediction algorithm by doing exploratory analysis. The following tasks will be the focus of this report
+
+1. Demonstrate that I have downloaded the data and have successfully loaded it in.
+2. Create a basic report of summary statistics about the data sets.
+3. Report any interesting findings that I amassed so far.
+4. Get feedback on my plans for creating a prediction algorithm and Shiny app. 
+
+### Install and load required packages
+
+```{r load packages, echo=TRUE}
+library(tidytext) # tokenization
+library(tidyr) # working with tidy data
+library(stringr) # String manipulations
+library(dplyr) # working with tidy data and using pipe operator for ease of coding and understanding
+library(tm) # preprocessing of text read into R
+library(wordcloud) # visualisation of important N-Grams
+library(ggplot2) # frequency plots
+library(tm) # text preprocessing
+```
+
+### Review size of files in terms of number of lines
+
+The blog file has 899288 lines, the news file has 1010242 lines and the twitter has 2360158 lines, so thats a lot of text to process in R in RAM.
+
+```{r size input text, echo=TRUE}
+setwd("~/final 3/en_US")
+con_blogs <- "en_US.blogs.txt"
+con_twitter <- "en_US.twitter.txt"
+con_news <- "en_US.news.txt"
+length(readLines(con_blogs,encoding = "UTF-8"))
+length(readLines(con_news,encoding = "UTF-8"))
+length(readLines(con_twitter,encoding = "UTF-8"))
+```
+
+### Exploratory Analysis
+
+
+#### Read Blog, News and Twitter data from the text files provided
+
+I have read 400,000 lines in each of the three files and combined all of them into one single object which has 1,200,000 lines in all from blogs, news and twitter datasets.This is roughly 25% of the total number of lines in all and so is a decent sample to start with.
+
+#### Preprocessing needs 
+
+I removed numbers from the text separately before the tokenization procedure. However the tokenization using tidy text package enabled me to perform lower case conversion and punctuation removal within the tokenization process itself. This will be covered in next section.
+
+```{r read text, echo=TRUE}
+setwd("~/final 3/en_US")
+con_blogs <- "en_US.blogs.txt"
+con_twitter <- "en_US.twitter.txt"
+con_news <- "en_US.news.txt"
+
+# Read blogs data
+en_us_blogs <- readLines(con_blogs,400000,encoding = "UTF-8") # Use UTF-8 to avoid bad unicode conversion
+en_us_blogs_clean <- removeNumbers(en_us_blogs)
+
+# Create blogs tidy table
+en_us_blogs_df <- data_frame(document="blogs",line_number=1:length(en_us_blogs_clean),text=en_us_blogs_clean)
+
+# Read news data
+en_us_news <- readLines(con_news,400000,encoding = "UTF-8") # Use UTF-8 to avoid bad unicode conversion
+en_us_news_clean <- removeNumbers(en_us_news)
+
+#Create news tidy table
+en_us_news_df <- data_frame(document="news",line_number=1:length(en_us_news_clean),text=en_us_news_clean)
+
+## Read Twitter Data
+en_us_twitter <- readLines(con_twitter,400000,encoding = "UTF-8") # Use UTF-8 to avoid bad unicode conversion
+en_us_twitter_clean <- removeNumbers(en_us_twitter)
+
+#Create twitter tidy table
+en_us_twitter_df <- data_frame(document="twitter",line_number=1:length(en_us_twitter_clean),text=en_us_twitter_clean)
+
+# Combine all data into one single dataset
+en_us_all_df <- rbind(en_us_blogs_df,en_us_news_df,en_us_twitter_df)
+```
+
+#### Word Length observations
+
+I have calculated the word count in each of these lines to get a sense of how words are distributed in blogs, news and twitter data. Also i have checked where 99.9% of the sample lie in terms of word count and it seems that the distribution of 99.9% of the data is very different from total sample suggesting that there are huge outliers in terms of word counts per line for specific lines.
+
+```{r check word lengths, echo=TRUE}
+# Check word count in each line and summarise word counts per line by document source
+en_us_all_df$word_count <- sapply(strsplit(en_us_all_df$text, " "),length)
+tapply(en_us_all_df$word_count,en_us_all_df$document,summary)
+tapply(en_us_all_df$word_count,en_us_all_df$document,quantile,probs=.999)
+```
+
+#### Analysis of 1-grams
+
+The approach to tokenization is through the tidy text package making use of unnest tokens function which automatically removes punctuation, converts to lower cases and breaks down in specified N-gram tokens. Before tokenization was done for any of the N-grams, numbers were removed from the text character vector to avoid useless n-grams which are composed of only numbers.
+
+```{r compute and analyse 1-grams, echo=FALSE}
+en_us_all_tidy <- en_us_all_df %>% unnest_tokens(word,text) %>% anti_join(stop_words)
+en_us_all_tidy <- en_us_all_tidy %>% mutate(serial_number=row_number())
+en_us_all_tidy
+
+# Compare summary stats of word lengths for all and by blogs, news and twitter
+en_us_all_tidy <- en_us_all_tidy %>% mutate(word_length=nchar(word))
+en_us_all_tidy$document <- as.factor(en_us_all_tidy$document)
+tapply(en_us_all_tidy$word_length,en_us_all_tidy$document,summary)
+tapply(en_us_all_tidy$word_length,en_us_all_tidy$document,quantile,probs=.999)
+
+# Show extremely long words used
+en_us_all_tidy %>% arrange(desc(word_length))
+
+# Count Word Frequency
+en_us_all_count_1 <- en_us_all_tidy %>% count(word,document,sort = TRUE) %>%  mutate(word = reorder(word,n))
+en_us_all_count_1x <- en_us_all_count_1  %>% group_by(document) %>% top_n(20) %>% ungroup()
+```
+
+Stop words have been removed to focus on the words that provide the most insight.
+
+Starting with individual words or 1-grams, i have looked at the word length in the sample and printed the distribution of word lengths for blogs, news and twitter. Again 99.9% of the data is distributed very differently from the final 1% which shows outlier behaviour. This indicates that there is a lot of junk that could be cleaned up to reduce data ingestion for analysis.
+
+Also the extremely long word lengths shows the words are also in gibberish formats which could be further cleaned up before building the final n-gram tables for text prediction. A sample of very long words have been shown above.
+
+#### Compute 2-gram, 3-gram and 4-gram frequencies.
+
+Finally the count of n-grams for n=2 to 4 are calculated. In order to focus on analysis of appropriate words reflecting the content of the data, stop words have been removed in each of these n-grams as well leading to a smaller n-gram table as compared to original tokenized table that was created from the tidy text. The difference can be seen by looking at the number of rows before and after filering stop words. As we move to 2,3 and 4-grams, the number of tokens shoots up tremendously and hence the computational complexity.
+
+```{r compute 2 grams, echo=TRUE}
+# 2-grams
+en_us_all_tidy_2 <- en_us_all_df %>% unnest_tokens(word,text,token = "ngrams",n=2)
+
+en_us_all_tidy_2_no_stop <- en_us_all_tidy_2 %>% separate(word,c("word1","word2"),sep=" ") %>% filter(!word1 %in% stop_words$word) %>% filter(!word2 %in% stop_words$word)
+
+en_us_all_count_2 <- en_us_all_tidy_2_no_stop %>% count(document,word1,word2,sort = TRUE)
+bigram <- en_us_all_count_2 %>% mutate(bigram=paste(word1,word2,sep="_"))
+```
+
+
+```{r compute 3 grams, echo=TRUE}
+# 3-grams
+en_us_all_tidy_3 <- en_us_all_df %>% unnest_tokens(word,text,token = "ngrams",n=3)
+
+en_us_all_tidy_3_no_stop <- en_us_all_tidy_3 %>% separate(word,c("word1","word2","word3"),sep=" ") %>% 
+  filter(!word1 %in% stop_words$word) %>% 
+  filter(!word2 %in% stop_words$word) %>%
+  filter(!word3 %in% stop_words$word)
+
+en_us_all_count_3 <- en_us_all_tidy_3_no_stop %>% count(document,word1,word2,word3,sort = TRUE)
+
+trigram <- en_us_all_count_3 %>% mutate(trigram=paste(word1,word2,word3,sep="_"))
+```
+
+
+```{r compute 4-grams, echo=TRUE}
+#4-grams
+en_us_all_tidy_4 <- en_us_all_df %>% unnest_tokens(word,text,token = "ngrams",n=4)
+en_us_all_tidy_4_no_stop <- en_us_all_tidy_4 %>% separate(word,c("word1","word2","word3","word4"),sep=" ") %>% 
+  filter(!word1 %in% stop_words$word) %>% 
+  filter(!word2 %in% stop_words$word) %>%
+  filter(!word3 %in% stop_words$word) %>%
+  filter(!word4 %in% stop_words$word)
+
+en_us_all_count_4 <- en_us_all_tidy_4_no_stop %>% count(document,word1,word2,word3,word4,sort = TRUE)
+
+quadgram <- en_us_all_count_4 %>% mutate(quadgram=paste(word1,word2,word3,word4,sep="_"))
+```
+
+Based on the sample, the initial 2,3,4 gram tables with all words were of 1-2 GB with over 30 million rows.However in terms of processing time with Dell 16 GB RAM, i could break 1.2 million lines of text into 2/3/4 gram tokens of over 30 million in a max of 4 minutes. Performance was not an issue but the memory consumption was hitting close to limit. Hence this is a key aspect for sampling the right size of data as well as the number of R objects i will hold in memory.
+
+#### 1,2,3 and 4 gram tables
+
+Note the word tokens coming out of the n-grams. Also note that there are some 'NA' values as well. This is because there are lines in which there are only 1,2 or 3 words. Hence breaking these up into tokens for 2,3 and 4 grams respectively will result in NA values.
+
+```{r ngram tables, echo=TRUE}
+# Print 1-gram, 2-gram, 3-gram and 4-gram tables
+en_us_all_count_1
+en_us_all_count_2
+en_us_all_count_3
+en_us_all_count_4
+```
+
+#### Barplot Visualisations
+
+The NA values are filtered prior to pulling the top 20 n-grams for the purpose of plotting bar charts for visualisation.
+
+```{r barplots, echo=TRUE}
+
+# Print frequency plots for 1-grams, 2-grams, 3-grams and 4-grams
+
+en_us_all_count_1x %>% ggplot(aes(word,n,fill=document))+ geom_col()+facet_wrap(~document,ncol = 2, scales = "free")+coord_flip()
+
+bigram[complete.cases(bigram),] %>% group_by(document) %>% top_n(20,n) %>% ungroup() %>% mutate(bigram=reorder(bigram,n)) %>%
+  ggplot(aes(bigram,n,fill=document))+ geom_col()+facet_wrap(~document,ncol = 2, scales = "free")+coord_flip()
+
+trigram[complete.cases(trigram),] %>% group_by(document) %>% top_n(20,n) %>% ungroup() %>%mutate(trigram=reorder(trigram,n)) %>%
+  ggplot(aes(trigram,n,fill=document))+ geom_col()+facet_wrap(~document,ncol = 3, scales = "free")+coord_flip()
+
+quadgram[complete.cases(quadgram),] %>% group_by(document) %>% top_n(20,n) %>% ungroup() %>%mutate(quadgram=reorder(quadgram,n)) %>%
+  ggplot(aes(quadgram,n,fill=document))+ geom_col()+facet_wrap(~document,ncol = 3, scales = "free")+coord_flip()
+```
+
+### Interesting Observations
+
+1. There are NA values in 2,3 and 4 gram tokens as already mentioned above, these will need to be filtered out before visualisations especially if word clouds are used.
+2. There are gibberish words with unusually long lengths like aaaaaabbb or just ---- etc which shoud be cleaned up.
+3. There are foriegn language words/chars such as japanese in the text. It would be useful to extract these from the text to be analysed separately for context, this would not be done by me in this assignment. we can ignore this currently.
+3. I have removed stop words only for analysis sake to look at words which are more useful in reflecting the content. While proceeding with text prediction, we do need to include these. Hence our n-gram tables may be bulkier than what we saw above. Performance is a key issue to be considered and the sample size would need to be considered in the light of retaining stop words.
+4. The word lengths and word counts for last 1% is significantly different from 99% of the words/lines. this gives scope to reasonably reduce data size to mitigate performance issues. we can consider using 80-90 percentile data without major loss of information if performance is a serious issue.
+5. special characters such as "", ' etc are shown in unicode format <U+2019> etc in the R char object post readlines processing. Interpreting these should not be a major challenge as these are few and can even be manually interpreted based on unicode substitutes.
+6. Words are spelled in many many ways and get accounted as separate n-grams. it is to be explored how these should be handled only if the frequency counts warrant such a simplification.
+
+### Plans for Text Prediction
+
+1. Resample suitable size data keeping in mind we need to retain stop words for prediction.
+2. Avoid creating unnecessary intermediate objects to store at various levels of data manipulation as this is choking available RAM on PC. This is important considering the initial n-gram tables (raw n-grams without freq counts) ran upto 32 million rows and 2 GB of memory size.
+3. Clean up gibberish data to have a cleaner and lighter n-gram table to run prediction algorithm. Clean up numbers, punctuations, lower case conversion etc in separate or as part of the tokenization process.
+4. Construct upto 4-gram frequency tables which means we predict the next word based on last 3 words.
+5. Prediction algorithm will be based on katz back off model which will look for matching 3-grams, 2-grams and 1-gram tokens and calculate the probability of possible tail word and then choose the word with the highest probability. Good turing and Kneser Nay smoothing methods can be explored to apply frequency discounts to carve out probability mass for unseen n-grams.
+
+### Closing Thoughts
+
+Text processing is considerably challenging given the way in which text is communicated especially in informal ways. Clean up is a huge task before creating final n-gram tables. Performance and memory size should be reviewed to create a sustainable model while also making sure the prediction accuracy is reasonable. In a production setup, parallel processing is all the more key to consume humungous amount of available text and process them in an efficient way. This assignment is just the most basic prototype of a text prediction application.
+
