@@ -42,11 +42,11 @@ A 4-gram language model was decided to be used for the text prediction.This mean
 Resources
 ========================================================
 
-The text prediction shiny app can be accessed at the link - <insert link>. It has the instructions for getting text prediction.
+Link to Shiny App: https://aravindankrishnan.shinyapps.io/text_predicton/. It has the instructions for getting text prediction.Please specify minimum 3 words for the input text.
 
-I have also added the below materials for reference at my github link - 
+my github link for all artifacts - https://github.com/aravindankrishnan/Capstone_text_prediction
 
-- Link to Original Corpus files provided by coursera
+- Link to dataset: https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip
 - Capstone Milestone Report
 - R code for the prediction algorithm - lists the final 4-gram prediction table
 - Shiny Code for the text prediction app
