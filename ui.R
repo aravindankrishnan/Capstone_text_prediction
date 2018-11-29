@@ -3,7 +3,7 @@ library(shiny)
 library(ggplot2)
 library(dplyr)
 library(tools)
-library(DT)
+#library(DT)
 data("mtcars")
 # Define UI for application that plots different variables of mtcars dataset
 
@@ -45,9 +45,10 @@ ui <- fluidPage(
                            br(),                              
                            h4("The Top 3 Predictions are:"),
                            br(),
-                           textOutput(outputId = "prediction1"),
-                           textOutput(outputId = "prediction2"),
-                           textOutput(outputId = "prediction3")
+                           textOutput(outputId = "prediction")
+                           #textOutput(outputId = "prediction2"),
+                           #textOutput(outputId = "prediction3"),
+                           #textOutput(outputId = "length")
                            )
                            )
                            )
