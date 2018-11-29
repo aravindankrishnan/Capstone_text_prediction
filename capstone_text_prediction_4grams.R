@@ -80,7 +80,7 @@ en_us_all_tidy_2
 #2.5 Build 2-gram frequency table
 Rprof("~/timing.txt")
 en_us_all_count_2 <- en_us_all_tidy_2 %>% count(word1,word2)
-en_us_all_count_2
+en_us_all_count_2 <- filter(en_us_all_count_2,en_us_all_count_2$n>2)
 summaryRprof("~/timing.txt")
 Rprof(NULL)
 rm(en_us_all_tidy_2)
